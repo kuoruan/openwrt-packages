@@ -42,15 +42,18 @@ start_instance() {
 	config_file="$config_dir/aria2.conf"
 	session_file="$config_dir/aria2.session"
 	dht_file="$config_dir/dht.dat"
+	log_file="$config_dir/aria2.log"
 	[ -d "$config_dir" ] || {
 		mkdir -m 0755 -p "$config_dir"
 		touch "$config_file"
 		[ -z "$user" ] || chown -R $user $config_dir
 	}
 	touch "$session_file"
+	touch "$log_file"
 
 	echo -e "enable-rpc=true\nrpc-allow-origin-all=true\nrpc-listen-all=true\nquiet=true" > $config_file
 	echo -e "continue=true\ninput-file=$session_file\nsave-session=$session_file" >> $config_file
+	echo -e "log=$log_file" >> $config_file
 	option_disabled "$s" 'enable_dht' || echo "dht-file-path=$dht_file" >> $config_file
 
 	append_params "$s" \
@@ -85,7 +88,7 @@ stop() {
 }
 
 restart() {
-	logger -t ARIA2C 'Restarting aria2s service'
+	logger -t ARIA2C 'Restarting aria2c service'
 	stop
 	sleep 2 # give time to shutdown
 	start
