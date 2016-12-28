@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=shadowsocksr-libev
-PKG_VERSION:=20161117
+PKG_VERSION:=20161224
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_URL:=https://github.com/kuoruan/shadowsocksr-libev.git
-PKG_SOURCE_VERSION:=80971dbe788fddd59c9cf4a4b246bf8a95616d16
+PKG_SOURCE_URL:=https://github.com/shadowsocksr/shadowsocksr-libev.git
+PKG_SOURCE_VERSION:=cd646ce98f0c21d54011d636dabba1fc053fbc0d
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
