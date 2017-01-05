@@ -144,8 +144,49 @@ config for curl (download errors with default ssl backend!):
   
 **example to receive adblock statistics via ubus:**
 <pre><code>
-ubus call service list '{"name":"adblock_stats"}' | jsonfilter -e '@.*.instances.stats.env'
-This will output the overall domain count and the last runtime as JSON, i.e. { "blocked_domains": "136159", "last_rundate": "18.12.2016 20:49:03" }
+ubus call service list '{"name":"adblock_stats"}'
+This will output the active block lists, the overall domain count and the last runtime as JSON, i.e.:
+{
+    "adblock_stats": {
+        "instances": {
+            "stats": {
+                "running": false,
+                "command": [
+                    ""
+                ],
+                "data": {
+                    "active_lists": [
+                        {
+                            "palevo": "14",
+                            "blacklist": "143",
+                            "winspy": "164",
+                            "zeus": "446",
+                            "rolist": "644",
+                            "malwarelist": "1218",
+                            "openphish": "1515",
+                            "ransomware": "1463",
+                            "ruadlist": "1773",
+                            "yoyo": "2320",
+                            "dshield": "123",
+                            "disconnect": "3181",
+                            "spam404": "6155",
+                            "malware": "9882",
+                            "whocares": "11825",
+                            "winhelp": "10917",
+                            "sysctl": "8529",
+                            "securemecca": "9919",
+                            "shalla": "25779",
+                            "hphosts": "37111"
+                        }
+                    ],
+                    "blocked_domains": "133121",
+                    "last_rundate": "31.12.2016 07:19:25",
+                    "system": "LEDE Reboot SNAPSHOT r2709-b7677f05d6"
+                }
+            }
+        }
+    }
+}
 </code></pre>
   
 **example cronjob for a regular block list update (/etc/crontabs/root):**
