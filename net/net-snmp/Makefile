@@ -90,6 +90,7 @@ endef
 define Package/snmpd-static
 $(call Package/net-snmp/Default)
   TITLE:=Open source SNMP implementation (daemon)
+  DEPENDS:=+PACKAGE_libnl-core:libnl-core
 endef
 
 define Package/snmpd-static/description
@@ -100,6 +101,7 @@ endef
 
 
 SNMP_MIB_MODULES_INCLUDED = \
+	agentx \
 	host/hr_device \
 	host/hr_disk \
 	host/hr_filesys \
@@ -141,7 +143,6 @@ SNMP_MIB_MODULES_INCLUDED = \
 
 SNMP_MIB_MODULES_EXCLUDED = \
 	agent_mibs \
-	agentx \
 	disman/event \
 	disman/schedule \
 	hardware \
@@ -157,9 +158,9 @@ SNMP_MIB_MODULES_EXCLUDED = \
 	udp-mib \
 	utilities \
 
-SNMP_TRANSPORTS_INCLUDED = Callback UDP
+SNMP_TRANSPORTS_INCLUDED = Callback UDP Unix
 
-SNMP_TRANSPORTS_EXCLUDED = TCP TCPIPv6 Unix
+SNMP_TRANSPORTS_EXCLUDED = TCP TCPIPv6
 
 TARGET_CFLAGS += $(FPIC)
 
