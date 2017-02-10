@@ -9,27 +9,27 @@ EXTRA_HELP="	suspend	Suspend adblock processing
 	resume	Resume adblock processing
 	query	<DOMAIN> Query active blocklists for specific domain"
 
-exec 2>/dev/null
 adb_script="/usr/bin/adblock.sh"
-adb_iface="$(uci -q get adblock.global.adb_iface)"
 
 boot()
 {
-    local wanif4 wanif6
+    local wanif4 wanif6 cnt=0
 
-    ubus -t 30 wait_for network.interface
-    if [ ${?} -eq 0 ]
-    then
-        . "/lib/functions/network.sh"
+    . "/lib/functions/network.sh"
+    while [ ${cnt} -le 30 ]
+    do
         network_find_wan wanif4
         network_find_wan6 wanif6
-        if [ -n "${wanif4}" ] || [ -n "${wanif6}" ]
+        if [ -n "${wanif4}" ] || [ -n "${wanif6}" ] || [ ${cnt} -eq 30 ]
         then
             rc_procd start_service
+            return 0
         else
-            rc_procd service_triggers
+            sleep 1
+            cnt=$((cnt+1))
+            network_flush_cache
         fi
-    fi
+    done
 }
 
 start_service()
@@ -56,6 +56,11 @@ stop_service()
     rc_procd "${adb_script}" stop
 }
 
+restart()
+{
+    rc_procd start_service restart
+}
+
 suspend()
 {
     rc_procd start_service suspend
@@ -74,16 +79,17 @@ query()
 
 service_triggers()
 {
-    local iface
+    local iface="$(uci -q get adblock.global.adb_iface)"
 
-    procd_add_config_trigger "config.change" "adblock" /etc/init.d/adblock start
-    if [ -z "${adb_iface}" ]
+    if [ -z "${iface}" ]
     then
         procd_add_raw_trigger "interface.*.up" 1000 /etc/init.d/adblock start
     else
-        for iface in ${adb_iface}
+        for name in ${iface}
         do
-            procd_add_interface_trigger "interface.*.up" "${iface}" /etc/init.d/adblock start
+            procd_add_interface_trigger "interface.*.up" "${name}" /etc/init.d/adblock start
         done
     fi
+
+    procd_add_config_trigger "config.change" "adblock" /etc/init.d/adblock start
 }

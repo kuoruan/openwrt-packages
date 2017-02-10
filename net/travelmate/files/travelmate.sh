@@ -10,7 +10,7 @@
 #
 LC_ALL=C
 PATH="/usr/sbin:/usr/bin:/sbin:/bin"
-trm_ver="0.3.0"
+trm_ver="0.3.2"
 trm_enabled=1
 trm_debug=0
 trm_maxwait=20
@@ -25,7 +25,7 @@ f_envload()
     then
         . "/lib/functions.sh"
     else
-        f_log "error" "required system library not found"
+        f_log "error" "status  ::: required system library not found"
     fi
 
     # load uci config and check 'enabled' option
@@ -80,26 +80,29 @@ f_prepare()
 
 f_check()
 {
-    local ifname cnt=0 mode="${1}"
+    local ifname cnt=1 mode="${1}"
     trm_ifstatus="false"
 
-    while [ ${cnt} -lt ${trm_maxwait} ]
+    while [ ${cnt} -le ${trm_maxwait} ]
     do
-        ifname="$(ubus -S call network.wireless status | jsonfilter -l 1 -e "@.*.interfaces[@.config.mode=\"${mode}\"].ifname")"
-        if [ "${mode}" = "sta" ]
+        if [ "${mode}" = "ap" ]
         then
-            trm_ifstatus="$(ubus -S call network.interface dump | jsonfilter -e "@.interface[@.device=\"${ifname}\"].up")"
-        else
             trm_ifstatus="$(ubus -S call network.wireless status | jsonfilter -l1 -e '@.*.up')"
+        else
+            ifname="$(ubus -S call network.wireless status | jsonfilter -l1 -e '@.*.interfaces[@.config.mode="sta"].ifname')"
+            if [ -n "${ifname}" ]
+            then
+                trm_ifstatus="$(ubus -S call network.interface dump | jsonfilter -e "@.interface[@.device=\"${ifname}\"].up")"
+            fi
         fi
-        if [ "${trm_ifstatus}" = "true" ]
+        if [ "${mode}" = "initial" ] || [ "${trm_ifstatus}" = "true" ]
         then
             break
         fi
         cnt=$((cnt+1))
         sleep 1
     done
-    f_log "debug" "check   ::: name: ${ifname}, status: ${trm_ifstatus}, count: ${cnt}"
+    f_log "debug" "check   ::: mode: ${mode}, name: ${ifname}, status: ${trm_ifstatus}, count: ${cnt}, max-wait: ${trm_maxwait}"
 }
 
 # function to write to syslog
@@ -121,9 +124,10 @@ f_log()
 
 f_main()
 {
-    local ap_list ssid_list config network ssid cnt=0
+    local ap_list ssid_list config network ssid cnt=1
+    local sysver="$(ubus -S call system board | jsonfilter -e '@.release.description')"
 
-    f_check "sta"
+    f_check "initial"
     if [ "${trm_ifstatus}" != "true" ]
     then
         config_load wireless
@@ -138,11 +142,11 @@ f_main()
         f_log "debug" "main    ::: ap-list: ${ap_list}, sta-list: ${trm_stalist}"
         if [ -z "${ap_list}" ] || [ -z "${trm_stalist}" ]
         then
-            f_log "error" "main    ::: no usable AP/STA configuration found"
+            f_log "error" "status  ::: no usable AP/STA configuration found"
         fi
         for ap in ${ap_list}
         do
-            while [ ${cnt} -lt ${trm_maxretry} ]
+            while [ ${cnt} -le ${trm_maxretry} ]
             do
                 if [ ${trm_iw} -eq 1 ]
                 then
@@ -164,18 +168,31 @@ f_main()
                         then
                             uci -q set wireless."${config}".disabled=0
                             uci -q commit wireless
-                            ubus call network.interface."${network}" up
                             ubus call network reload
-                            f_log "info " "main    ::: wwan interface connected to uplink ${ssid}"
-                            return 0
+                            f_check "sta"
+                            if [ "${trm_ifstatus}" = "true" ]
+                            then
+                                f_log "info " "status  ::: wwan interface connected to uplink ${ssid} (${cnt}/${trm_maxretry}, ${sysver})"
+                                sleep 5
+                                return 0
+                            else
+                                uci -q set wireless."${config}".disabled=1
+                                uci -q commit wireless
+                                ubus call network reload
+                                f_log "info " "status  ::: wwan interface can't connect to uplink ${ssid} (${cnt}/${trm_maxretry}, ${sysver})"
+                            fi
                         fi
                     done
+                else
+                    f_log "info " "status  ::: empty uplink list (${cnt}/${trm_maxretry}, ${sysver})"
                 fi
                 cnt=$((cnt+1))
                 sleep 5
             done
         done
-        f_log "info " "main    ::: no wwan uplink found"
+        f_log "info " "status  ::: no wwan uplink found (${sysver})"
+    else
+        f_log "info " "status  ::: wwan uplink still connected (${sysver})"
     fi
 }
 

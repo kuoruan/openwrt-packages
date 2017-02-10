@@ -9,13 +9,15 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=net-snmp
 PKG_VERSION:=5.7.3
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/net-snmp
 PKG_MD5SUM:=d4a3459e1577d0efa8d96ca70a885e53
 PKG_MAINTAINER:=Stijn Tintel <stijn@linux-ipv6.be>
 PKG_LICENSE:=MIT BSD-3-Clause-Clear
+
+PKG_FIXUP:=autoreconf
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -38,7 +40,7 @@ define Package/libnetsnmp
 $(call Package/net-snmp/Default)
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+PACKAGE_libnl-core:libnl-core
+  DEPENDS:=+libnl-tiny
   TITLE:=Open source SNMP implementation (libraries)
 endef
 
@@ -89,15 +91,10 @@ endef
 
 define Package/snmpd-static
 $(call Package/net-snmp/Default)
+  DEPENDS:=+snmpd
   TITLE:=Open source SNMP implementation (daemon)
-  DEPENDS:=+PACKAGE_libnl-core:libnl-core
 endef
 
-define Package/snmpd-static/description
-$(call Package/net-snmp/Default/description)
- .
- This package contains the SNMP agent, statically linked.
-endef
 
 
 SNMP_MIB_MODULES_INCLUDED = \
@@ -163,6 +160,7 @@ SNMP_TRANSPORTS_INCLUDED = Callback UDP Unix
 SNMP_TRANSPORTS_EXCLUDED = TCP TCPIPv6
 
 TARGET_CFLAGS += $(FPIC)
+TARGET_CPPFLAGS += -I$(STAGING_DIR)/usr/include/libnl-tiny
 
 CONFIGURE_ARGS += \
 	--enable-mfd-rewrites \
@@ -186,7 +184,12 @@ CONFIGURE_ARGS += \
 	--without-libwrap \
 	--without-rpm \
 	--without-zlib \
+	--with-nl \
 	 $(call autoconf_bool,CONFIG_IPV6,ipv6) \
+
+CONFIGURE_VARS += \
+	ac_cv_header_netlink_netlink_h=yes \
+	netsnmp_cv_func_nl_connect_LIBS=-lnl-tiny \
 
 ifeq ($(CONFIG_IPV6),y)
 SNMP_TRANSPORTS_INCLUDED+= UDPIPv6
@@ -194,21 +197,11 @@ endif
 
 TARGET_LDFLAGS += -L$(TOOLCHAIN_DIR)/usr/lib
 
-ifdef CONFIG_PACKAGE_snmpd-static
-  define Build/Compile/static
-	$(MAKE) -C $(PKG_BUILD_DIR)/agent \
-		LDFLAGS="$(TARGET_LDFLAGS) -lm -static" \
-		EXEEXT="-static" \
-		snmpd-static
-  endef
-endif
-
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		INSTALL_PREFIX="$(PKG_INSTALL_DIR)" \
 		LDFLAGS="$(TARGET_LDFLAGS) -lm -lc" \
 		all install
-	$(Build/Compile/static)
 endef
 
 define Build/InstallDev
@@ -250,21 +243,6 @@ define Package/snmpd/install
 	$(INSTALL_BIN) ./files/snmpd.init $(1)/etc/init.d/snmpd
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/snmpd $(1)/usr/sbin/snmpd
-endef
-
-define Package/snmpd-static/conffiles
-/etc/config/snmpd
-endef
-
-define Package/snmpd-static/install
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DATA) ./files/snmpd.conf $(1)/etc/config/snmpd
-	$(INSTALL_DIR) $(1)/etc/snmp
-	ln -sf /var/run/snmpd.conf $(1)/etc/snmp/
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/snmpd.init $(1)/etc/init.d/snmpd
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/agent/snmpd-static $(1)/usr/sbin/snmpd
 endef
 
 $(eval $(call BuildPackage,libnetsnmp))
