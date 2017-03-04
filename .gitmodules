@@ -1,3 +1,0 @@
-[submodule "net/shadowsocks-libev"]
-	path = net/shadowsocks-libev
-	url = https://github.com/shadowsocks/openwrt-shadowsocks.git
