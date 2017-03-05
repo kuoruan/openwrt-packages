@@ -12,8 +12,8 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/shadowsocksr/shadowsocksr-libev.git
-PKG_SOURCE_DATE:=2017-02-05
-PKG_SOURCE_VERSION:=e1d82525c2aeaf5170b640e7ec363f0b74835c61
+PKG_SOURCE_DATE:=2017-02-26
+PKG_SOURCE_VERSION:=5e194305e701d5f9a372a5c04a1ecd7e1802f37f
 
 PKG_LICENSE:=GPLv3
 PKG_LICENSE_FILES:=LICENSE
@@ -31,7 +31,7 @@ define Package/shadowsocksr-libev/Default
 	CATEGORY:=Network
 	TITLE:=Lightweight Secured Socks5 Proxy $(2)
 	URL:=https://github.com/breakwa11/shadowsocksr-libev
-	DEPENDS:=+libev +libpcre +libpthread +libsodium +libmbedtls
+	DEPENDS:=+libev +libudns +libpcre +libpthread +libsodium +libmbedtls
 endef
 
 Package/shadowsocksr-libev = $(Package/shadowsocksr-libev/Default)
