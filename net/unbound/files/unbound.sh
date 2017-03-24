@@ -88,6 +88,29 @@ UNBOUND_CONTROL_CFG="$UNBOUND_CONTROL -c $UNBOUND_CONFFILE"
 
 ##############################################################################
 
+copy_dash_update() {
+  # TODO: remove this function and use builtins when this issues is resovled.
+  # Due to OpenWrt/LEDE divergence "cp -u" isn't yet universally available.
+  local filetime keeptime
+
+
+  if [ -f $UNBOUND_KEYFILE.keep ] ; then
+    # root.key.keep is reused if newest
+    filetime=$( date -r $UNBOUND_KEYFILE +%s )
+    keeptime=$( date -r $UNBOUND_KEYFILE.keep +%s )
+
+
+    if [ $keeptime -gt $filetime ] ; then
+      cp $UNBOUND_KEYFILE.keep $UNBOUND_KEYFILE
+    fi
+
+
+    rm -f $UNBOUND_KEYFILE.keep
+  fi
+}
+
+##############################################################################
+
 create_interface_dns() {
   local cfg="$1"
   local ipcommand logint ignore ifname ifdashname
@@ -236,6 +259,7 @@ unbound_mkdir() {
   local resolvsym=0
   local dhcp_origin=$( uci get dhcp.@odhcpd[0].leasefile )
   local dhcp_dir=$( dirname "$dhcp_origin" )
+  local filestuff
 
 
   if [ ! -x /usr/sbin/dnsmasq -o ! -x /etc/init.d/dnsmasq ] ; then
@@ -265,8 +289,15 @@ unbound_mkdir() {
 
 
   if [ -f $UNBOUND_KEYFILE ] ; then
-    # Lets not lose RFC 5011 tracking if we don't have to
-    cp -p $UNBOUND_KEYFILE $UNBOUND_KEYFILE.keep
+    filestuff=$( cat $UNBOUND_KEYFILE )
+
+
+    case "$filestuff" in
+      *"state=2 [  VALID  ]"*)
+        # Lets not lose RFC 5011 tracking if we don't have to
+        cp -p $UNBOUND_KEYFILE $UNBOUND_KEYFILE.keep
+        ;;
+    esac
   fi
 
 
@@ -304,11 +335,7 @@ unbound_mkdir() {
   fi
 
 
-  if [ -f $UNBOUND_KEYFILE.keep ] ; then
-    # root.key.keep is reused if newest
-    cp -u $UNBOUND_KEYFILE.keep $UNBOUND_KEYFILE
-    rm -f $UNBOUND_KEYFILE.keep
-  fi
+  copy_dash_update
 
 
   # Ensure access and prepare to jail
@@ -891,10 +918,6 @@ unbound_stop() {
     rm -f /tmp/resolv.conf
     ln -s /tmp/resolv.conf.auto /tmp/resolv.conf
   fi
-
-
-  # Unbound has a log dump which takes time; don't overlap a "restart"
-  sleep 1
 }
 
 ##############################################################################
