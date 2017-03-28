@@ -1,12 +1,12 @@
 BINDIR = /usr/sbin
-TCDIR:=$(BUILD_DIR)/iproute2-full/ip*
+#TCDIR:=$(BUILD_DIR)/iproute2-full/ip*
+TCDIR:=$(shell if [ -e "${BUILD_DIR}/iproute2-full" ] ; then echo "${BUILD_DIR}/iproute2-full"/ip* ; else echo "${BUILD_DIR}/iproute2-tiny"/ip* ; fi ; )
 
 #The ncurses library only needed if we remove the ONLYBG switch
 #below.  Mostly for debug
 #LDLIBS += -lncurses
 
 LDLIBS += -lm
-
 
 TCOBJS := $(TCDIR)/tc/tc_util.o
 TCOBJS += $(TCDIR)/tc/tc_core.o

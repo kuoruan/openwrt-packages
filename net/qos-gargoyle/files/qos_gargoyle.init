@@ -1,4 +1,5 @@
 #!/bin/sh /etc/rc.common
+#
 # A Modified QoS script based on qos_gargoyle by Eric Bishop.
 # Copyright (c) 2008 Eric Bishop
 # Copyright (c) 2016 GuoGuo<gch981213@gmail.com>
@@ -13,7 +14,7 @@ EXTRA_HELP="	show	Show current Qos configuration (if active)"
 . ${IPKG_INSTROOT}/lib/functions/network.sh
 . ${IPKG_INSTROOT}/lib/network/config.sh
 
-config_file_name="qos_guoguo"
+config_file_name="qos_gargoyle"
 upload_mask="0x007F"
 download_mask="0x7F00"
 qos_mark_file="/etc/qos_class_marks"
@@ -238,9 +239,6 @@ update_markfile()
 
 initialize_qos()
 {
-	#initialize layer7_marker if necessary
-#	create_l7marker_chain
-
 	# Now, load/insert necessary kernel modules
 	# The following packages are required for the modules:
 	rmmod  imq >&- 2>&-
@@ -707,8 +705,8 @@ stop()
 
 start()
 {
-	test_total_up=$(uci get qos_guoguo.upload.total_bandwidth 2>/dev/null)
-	test_total_down=$(uci get qos_guoguo.download.total_bandwidth 2>/dev/null)
+	test_total_up=$(uci get qos_gargoyle.upload.total_bandwidth 2>/dev/null)
+	test_total_down=$(uci get qos_gargoyle.download.total_bandwidth 2>/dev/null)
 	if [ -z "$test_total_up" ] && [ -z "$test_total_down" ] ;then
 		disable
 		exit 0

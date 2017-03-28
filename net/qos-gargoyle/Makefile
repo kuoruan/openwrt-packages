@@ -1,23 +1,23 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=qos-guoguo
-PKG_VERSION:=0.0.1
+PKG_NAME:=qos-gargoyle
+PKG_VERSION:=1.0.0
 PKG_RELEASE:=2
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/qos-guoguo
+define Package/qos-gargoyle
 	SECTION:=net
 	CATEGORY:=Network
-	TITLE:=A set of QoS scripts based on qos-gargoyle for Gargoyle Firmware
-	DEPENDS:=+tc +ip-full +kmod-sched +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-imq
+	TITLE:=A set of QoS scripts
+	DEPENDS:=+tc +ip +kmod-sched +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-imq
 	MAINTAINER:=GuoGuo <gch981213@gmail.com>
 endef
 
 define Package/qos-guoguo/description
-	A set of QoS scripts based on qos-gargoyle for Gargoyle Firmware
+	A set of QoS scripts
 endef
 
 define Build/Prepare
@@ -46,9 +46,9 @@ define Package/qos-guoguo/install
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_DIR) $(1)/etc/config
 	
-	$(INSTALL_BIN) ./files/qos_guoguo.init $(1)/etc/init.d/qos_guoguo
-	$(INSTALL_BIN) ./files/qos_guoguo.hotplug $(1)/etc/hotplug.d/iface/23-qos_guoguo
-	$(INSTALL_DATA) ./files/qos_guoguo.conf $(1)/etc/config/qos_guoguo
+	$(INSTALL_BIN) ./files/qos_gargoyle.init $(1)/etc/init.d/qos_gargoyle
+	$(INSTALL_BIN) ./files/qos_gargoyle.hotplug $(1)/etc/hotplug.d/iface/23-qos_gargoyle
+	$(INSTALL_DATA) ./files/qos_gargoyle.conf $(1)/etc/config/qos_gargoyle
 
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/qosmon $(1)/usr/sbin/qosmon
@@ -56,9 +56,9 @@ define Package/qos-guoguo/install
 endef
 
 define Package/qos-guoguo/prerm
-	$${IPKG_INSTROOT}/etc/init.d/qos_guoguo stop 2>/dev/null
-	$${IPKG_INSTROOT}/etc/init.d/qos_guoguo disable 2>/dev/null
+	$${IPKG_INSTROOT}/etc/init.d/qos_gargoyle stop 2>/dev/null
+	$${IPKG_INSTROOT}/etc/init.d/qos_gargoyle disable 2>/dev/null
 	ls >/dev/null 2>&1
 endef
 
-$(eval $(call BuildPackage,qos-guoguo))
+$(eval $(call BuildPackage,qos-gargoyle))
