@@ -16,13 +16,14 @@ define Package/qos-gargoyle
 	MAINTAINER:=GuoGuo <gch981213@gmail.com>
 endef
 
-define Package/qos-guoguo/description
+define Package/qos-gargoyle/description
 	A set of QoS scripts
 endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
+	$(call Build/Prepare/Default)
 endef
 
 
@@ -41,7 +42,7 @@ define Build/Compile
 
 endef
 
-define Package/qos-guoguo/install
+define Package/qos-gargoyle/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_DIR) $(1)/etc/config
@@ -55,7 +56,7 @@ define Package/qos-guoguo/install
 
 endef
 
-define Package/qos-guoguo/prerm
+define Package/qos-gargoyle/prerm
 	$${IPKG_INSTROOT}/etc/init.d/qos_gargoyle stop 2>/dev/null
 	$${IPKG_INSTROOT}/etc/init.d/qos_gargoyle disable 2>/dev/null
 	ls >/dev/null 2>&1
