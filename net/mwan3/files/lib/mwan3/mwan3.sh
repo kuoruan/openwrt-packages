@@ -130,7 +130,12 @@ mwan3_create_iface_iptables()
 
 	if [ "$family" == "ipv4" ]; then
 
-		network_get_ipaddr src_ip $1
+		ubus call network.interface.${1}_4 status &>/dev/null
+		if [ "$?" -eq "0" ]; then
+			network_get_ipaddr src_ip ${1}_4
+		else
+			network_get_ipaddr src_ip $1
+		fi
 
 		$IPS -! create mwan3_connected list:set
 
@@ -166,7 +171,12 @@ mwan3_create_iface_iptables()
 
 	if [ "$family" == "ipv6" ]; then
 
-		network_get_ipaddr6 src_ipv6 $1
+		ubus call network.interface.${1}_6 status &>/dev/null
+		if [ "$?" -eq "0" ]; then
+			network_get_ipaddr6 src_ipv6 ${1}_6
+		else
+			network_get_ipaddr6 src_ipv6 $1
+		fi
 
 		$IPS -! create mwan3_connected_v6 hash:net family inet6
 
@@ -238,8 +248,13 @@ mwan3_create_iface_route()
 	[ -n "$id" ] || return 0
 
 	if [ "$family" == "ipv4" ]; then
+		ubus call network.interface.${1}_4 status &>/dev/null
+		if [ "$?" -eq "0" ]; then
+			network_get_gateway route_args ${1}_4
+		else
+			network_get_gateway route_args $1
+		fi
 
-		network_get_gateway route_args $1
 		route_args="via $route_args dev $2"
 
 		$IP4 route flush table $id
@@ -248,7 +263,13 @@ mwan3_create_iface_route()
 
 	if [ "$family" == "ipv6" ]; then
 
-		network_get_gateway6 route_args $1
+		ubus call network.interface.${1}_6 status &>/dev/null
+		if [ "$?" -eq "0" ]; then
+			network_get_gateway6 route_args ${1}_6
+		else
+			network_get_gateway6 route_args $1
+		fi
+
 		route_args="via $route_args dev $2"
 
 		$IP6 route flush table $id
@@ -362,6 +383,7 @@ mwan3_delete_iface_ipset_entries()
 mwan3_track()
 {
 	local track_ip track_ips reliability count timeout interval down up size
+	local failure_interval recovery_interval
 
 	mwan3_list_track_ips()
 	{
@@ -379,11 +401,13 @@ mwan3_track()
 		config_get count $1 count 1
 		config_get timeout $1 timeout 4
 		config_get interval $1 interval 10
+		config_get failure_interval $1 failure_interval $interval
+		config_get recovery_interval $1 recovery_interval $interval
 		config_get down $1 down 5
 		config_get up $1 up 5
 		config_get size $1 size 56
 
-		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track $1 $2 $reliability $count $timeout $interval $down $up $size $track_ips &
+		[ -x /usr/sbin/mwan3track ] && /usr/sbin/mwan3track $1 $2 $reliability $count $timeout $interval $down $up $size $failure_interval $recovery_interval $track_ips &
 	fi
 }
 
