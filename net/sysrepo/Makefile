@@ -12,6 +12,7 @@ PKG_MAINTAINER:=Mislav Novakovic <mislav.novakovic@sartura.hr>
 
 PKG_NAME:=sysrepo
 PKG_VERSION:=0.6.0
+PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_VERSION:=e4a5705a4c5293ba121048c71899b98243d99edf
@@ -38,11 +39,11 @@ define Package/libsysrepo
   DEPENDS:=+libyang +libprotobuf-c +libev +libavl
 endef
 
-define Package/sysrepod
+define Package/sysrepo
   SECTION:=util
   CATEGORY:=Utilities
   URL:=$(PKG_SOURCE_URL)
-  TITLE:=YANG-based data store daemon
+  TITLE:=YANG-based data store daemon and plugin
   DEPENDS:=+libsysrepo
 endef
 
@@ -62,14 +63,6 @@ define Package/sysrepocfg
   DEPENDS:=+libsysrepo
 endef
 
-define Package/sysrepo-plugind
-  SECTION:=util
-  CATEGORY:=Utilities
-  URL:=$(PKG_SOURCE_URL)
-  TITLE:=sysrepo plugin daemon
-  DEPENDS:=+libsysrepo
-endef
-
 define Package/sysrepo/description
 Sysrepo is an YANG-based configuration and operational state data store for Unix/Linux applications.
 endef
@@ -86,7 +79,7 @@ CMAKE_OPTIONS += \
 
 define Package/libsysrepo/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/libsysrepo.so* $(1)/usr/lib/
+	$(CP) $(PKG_BUILD_DIR)/src/libsysrepo.so* $(1)/usr/lib/
 
 	$(INSTALL_DIR) $(1)/etc/sysrepo/yang/internal
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/yang/sysrepo-module-dependencies.yang $(1)/etc/sysrepo/yang/internal
@@ -107,12 +100,15 @@ define Package/libsysrepo/install
 	$(INSTALL_BIN) ./files/libsysrepo.default $(1)/etc/uci-defaults/95_libsysrepo
 endef
 
-define Package/sysrepod/install
+define Package/sysrepo/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/sysrepod $(1)/bin/
 
+	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/sysrepo-plugind $(1)/bin/
+
 	$(INSTALL_DIR) $(1)/etc/init.d/
-	$(INSTALL_BIN) ./files/sysrepod.init $(1)/etc/init.d/sysrepod
+	$(INSTALL_BIN) ./files/sysrepo.init $(1)/etc/init.d/sysrepo
 endef
 
 define Package/sysrepoctl/install
@@ -125,16 +121,7 @@ define Package/sysrepocfg/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/sysrepocfg $(1)/bin/
 endef
 
-define Package/sysrepo-plugind/install
-	$(INSTALL_DIR) $(1)/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/sysrepo-plugind $(1)/bin/
-
-	$(INSTALL_DIR) $(1)/etc/init.d/
-	$(INSTALL_BIN) ./files/sysrepo-plugind.init $(1)/etc/init.d/sysrepo-plugind
-endef
-
 $(eval $(call BuildPackage,libsysrepo))
-$(eval $(call BuildPackage,sysrepod))
+$(eval $(call BuildPackage,sysrepo))
 $(eval $(call BuildPackage,sysrepoctl))
 $(eval $(call BuildPackage,sysrepocfg))
-$(eval $(call BuildPackage,sysrepo-plugind))
