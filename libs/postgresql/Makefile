@@ -1,6 +1,3 @@
-#
-# Copyright (C) 2006-2014 OpenWrt.org
-#
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
@@ -8,8 +5,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=postgresql
-PKG_VERSION:=9.5.4
-PKG_RELEASE:=4
+PKG_VERSION:=9.4.12
+PKG_RELEASE:=2
 PKG_MAINTAINER:=Daniel Golle <daniel@makrotopia.org>
 PKG_LICENSE:=PostgreSQL
 
@@ -18,12 +15,13 @@ PKG_SOURCE_URL:=\
 	https://ftp.postgresql.org/pub/source/v$(PKG_VERSION) \
 	http://ftp.postgresql.org/pub/source/v$(PKG_VERSION) \
 	ftp://ftp.postgresql.org/pub/source/v$(PKG_VERSION)
-PKG_MD5SUM:=cf5e571164ad66028ecd7dd8819e3765470d45bcd440d258b686be7e69c76ed0
+PKG_MD5SUM:=fca055481875d1c49e31c28443f56472a1474b3fbe25b7ae64440c6118f82e64
 PKG_BUILD_PARALLEL:=1
 PKG_USE_MIPS16:=0
 PKG_FIXUP:=autoreconf
 PKG_MACRO_PATHS:=config
 PKG_BUILD_DEPENDS += postgresql/host
+PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
@@ -145,8 +143,8 @@ define Host/Compile
 endef
 
 define Host/Install
-	$(INSTALL_DIR) $(STAGING_DIR)/usr/bin/
-	$(INSTALL_BIN) $(HOST_BUILD_DIR)/src/bin/pg_config/pg_config $(STAGING_DIR)/usr/bin/
+	$(INSTALL_DIR) $(STAGING_DIR)/host/bin/
+	$(INSTALL_BIN) $(HOST_BUILD_DIR)/src/bin/pg_config/pg_config $(STAGING_DIR)/host/bin/
 	$(INSTALL_DIR) $(STAGING_DIR_HOSTPKG)/bin/
 	$(INSTALL_BIN) $(HOST_BUILD_DIR)/src/interfaces/ecpg/preproc/ecpg $(STAGING_DIR_HOSTPKG)/bin/
 	$(INSTALL_BIN) $(HOST_BUILD_DIR)/src/timezone/zic $(STAGING_DIR_HOSTPKG)/bin/
@@ -161,15 +159,6 @@ TARGET_CFLAGS += $(FPIC) -lpthread
 
 # because PROFILE means something else in the project Makefile
 unexport PROFILE
-
-define Build/Compile
-	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all
-	+$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		install
-endef
 
 define Package/libpq/install
 	$(INSTALL_DIR) $(1)/usr/lib
@@ -212,6 +201,7 @@ endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/bin
+	$(LN) $(STAGING_DIR)/host/bin/pg_config $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/usr/include
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/libpq $(1)/usr/include/
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/libpq-fe.h $(1)/usr/include/
