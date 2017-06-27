@@ -4,3 +4,6 @@
 [submodule "net/shadowsocksr-libev"]
 	path = net/shadowsocksr-libev
 	url = https://github.com/kuoruan/openwrt-shadowsocksr.git
+[submodule "net/qos-gargoyle"]
+	path = net/qos-gargoyle
+	url = https://github.com/kuoruan/qos-gargoyle.git
