@@ -19,7 +19,7 @@ exec_status() {
 	while :;do sleep 590;echo "still running (please don't kill me Travis)";done &
 	("$@" 2>&1) | tee logoutput
 	R=${PIPESTATUS[0]}
-	kill $!
+	kill $! && wait $! 2>/dev/null
 	if [ $R -ne 0 ]; then
 		echo_red   "=> '$*' failed (return code $R)"
 		return 1
@@ -118,16 +118,23 @@ EOF
 
 		# we can't enable verbose built else we often hit Travis limits
 		# on log size and the job get killed
-		exec_status '^ERROR' make "package/$pkg_name/compile" -j3
+		exec_status '^ERROR' make "package/$pkg_name/compile" -j3 || RET=1
 
 		echo_blue "=== $pkg_name: compile test done"
 
 		echo_blue "=== $pkg_name: begin compile logs"
-		cat logs/package/feeds/packages/$pkg_name/compile.txt
+		for f in $(find logs/package/feeds/packages/$pkg_name/ -type f); do
+			echo_blue "Printing $f"
+			cat "$f"
+		done
 		echo_blue "=== $pkg_name: end compile logs"
+
+		echo_blue "=== $pkg_name: begin packages sizes"
+		du -ba bin/
+		echo_blue "=== $pkg_name: end packages sizes"
 	done
 
-	return 0
+	return $RET
 }
 
 test_commits() {
