@@ -33,7 +33,6 @@ _create_file() {
 
 _change_owner() {
 	local u="$1"; shift
-	[ "$u" = "root" ] && return 0
 
 	local d
 	for d in "$@"; do
@@ -66,18 +65,21 @@ append_options() {
 	local o; local v
 	for o in "$@"; do
 		v="$(eval echo "\$$o")"
-		[ -n "$v" ] && echo "${o//_/-}=$v" >>"$config_file_tmp"
+		[ -n "$v" ] && \
+			echo "${o//_/-}=$v" >>"$config_file_tmp"
 	done
 }
 
 append_setting() {
 	local s="$1"
-	[ -n "$s" ] && echo "$s" >>"$config_file_tmp"
+	[ -n "$s" ] && \
+		echo "$s" >>"$config_file_tmp"
 }
 
 append_header() {
 	local h="$1"
-	[ -n "$h" ] && echo "header=\"${h}\"" >>"$config_file_tmp"
+	[ -n "$h" ] && \
+		echo "header=\"${h}\"" >>"$config_file_tmp"
 }
 
 aria2_validate() {
@@ -86,6 +88,7 @@ aria2_validate() {
 		'enable_logging:bool' \
 		'enable_proxy:bool' \
 		'config_dir:string:/var/etc/aria2' \
+		'user:string' \
 		'all_proxy:string' \
 		'all_proxy_passwd:string' \
 		'all_proxy_user:string' \
@@ -109,8 +112,8 @@ aria2_validate() {
 		'disk_cache:string' \
 		'enable_dht:or("true","false"):true' \
 		'enable_dht6:or("true","false")' \
-		'enable_peer_exchange:("true","false")' \
-		'event_poll:("epoll","kqueue","port","poll","select")' \
+		'enable_peer_exchange:or("true","false")' \
+		'event_poll:or("epoll","kqueue","port","poll","select")' \
 		'file_allocation:or("none","prealloc","trunc","falloc")' \
 		'follow_torrent:or("true","false","mem")' \
 		'force_save:or("true","false")' \
@@ -155,15 +158,14 @@ aria2_start() {
 
 	[ "$enabled" = "1" ] || { _info "Instance \"${section}\" disabled."; return 1; }
 	[ -n "$dir" ] || { _err "Please set downlod dir."; return 1; }
-
-	user_exists "aria2" && run_user="aria2" || run_user="root"
+	[ -d "$dir" ] || { _err "Please create downlod dir first."; return 1; }
 
 	config_file="${config_dir}/${NAME}.conf.${section}"
 	config_file_tmp="${config_dir}/${NAME}.conf.tmp"
 	session_file="${config_dir}/${NAME}.session.${section}"
 
-	_make_dir "$dir" "$config_dir" || {
-		_err "Can't create dirs: ${dir}, ${config_dir}"
+	_make_dir "$config_dir" || {
+		_err "Can't create config dir: ${config_dir}"
 		return 1
 	}
 
@@ -176,8 +178,6 @@ aria2_start() {
 	cat >"$config_file_tmp" <<-EOF
 		# Auto generated file, changes to this file will lost.
 	EOF
-
-	_reset_dir_mode "$dir" "$config_dir"
 
 	append_setting "dir=${dir}"
 	append_setting "enable-rpc=true"
@@ -203,9 +203,6 @@ aria2_start() {
 
 		# create or clear log file
 		echo >"$log"
-
-		_reset_dir_mode "$log_dir"
-		_change_owner "$run_user" "$log"
 
 		append_setting "log=${log}"
 		append_options "log_level"
@@ -303,17 +300,25 @@ aria2_start() {
 		"user_agent"
 
 	config_list_foreach "$section" "header" append_header
-	config_list_foreach "$section" "extra_setting" append_setting
+	config_list_foreach "$section" "extra_settings" append_setting
 
-	sed '/^$/d' "$config_file_tmp" | sort | uniq >"$config_file"
+	sed '/^$/d' "$config_file_tmp" >"$config_file"
 	rm -f "$config_file_tmp"
 
+	_reset_dir_mode "$config_dir"
 	_change_file_mode 600 "$config_file"
 
-	_change_owner "$run_user" "$dir" "$config_dir" || {
-		_info "Set run user to 'aria2' failed, 'root' user will be used."
-		run_user="root"
-	}
+	if [ -n "$user" ]; then
+		if ( user_exists "$user" && _change_owner "$user" "$config_dir" "$log" ); then
+				_info "Aria2 will run with uer '${user}'."
+				if [ "$user" != "root" ]; then
+					_info "Please make sure user '${user}' has write access to downlod dir: ${dir}"
+				fi
+		else
+			_info "Set run user to '${user}' failed, default user will be used."
+			user=
+		fi
+	fi
 
 	procd_open_instance "${NAME}.${section}"
 	procd_set_param command "$PROG"
@@ -322,8 +327,10 @@ aria2_start() {
 	procd_set_param respawn
 	procd_set_param stdout 1
 	procd_set_param stderr 1
-	procd_set_param user "$run_user"
+
 	procd_set_param file "$config_file"
+	[ -n "$user" ] && \
+		procd_set_param user "$user"
 
 	procd_add_jail "${NAME}.${section}" log
 	procd_add_jail_mount "$config_file"
