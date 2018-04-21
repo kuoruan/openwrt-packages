@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2006-2017 OpenWrt.org
-# Copyright (C) 2017 Ian Leonard <antonlacon@gmail.com>
+# Copyright (C) 2017-2018 Ian Leonard <antonlacon@gmail.com>
+# Copyright (C) 2018 Ted Hess <thess@kitschensync.net>
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,12 +9,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ffmpeg
-PKG_VERSION:=3.2.8
-PKG_RELEASE:=1
+PKG_VERSION:=3.2.10
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=https://ffmpeg.org/releases/
-PKG_HASH:=42e7362692318afc666f14378dd445effa9a1b09787504a6ab5811fe442674cd
+PKG_HASH:=3c1626220c7b68ff6be7312559f77f3c65ff6809daf645d4470ac0189926bdbc
 PKG_MAINTAINER:=Ted Hess <thess@kitschensync.net>, \
 		Ian Leonard <antonlacon@gmail.com>
 
@@ -120,11 +120,8 @@ FFMPEG_CUSTOM_PROTOCOLS:= \
 	file http icecast pipe rtp tcp udp
 
 FFMPEG_MINI_DECODERS:= \
-	aac \
 	ac3 \
 	flac \
-	h264 \
-	hevc \
 	jpegls \
 	mp2 \
 	mp3 \
@@ -134,10 +131,12 @@ FFMPEG_MINI_DECODERS:= \
 	mpegvideo \
 	opus \
 	png \
-	vc1 \
 	vorbis \
-	wmav1 \
-	wmav2 \
+
+FFMPEG_PATENTED_MINI_DECODERS:= \
+	h264 \
+	hevc \
+	vc1 \
 
 FFMPEG_MINI_DEMUXERS:= \
 	avi \
@@ -154,8 +153,6 @@ FFMPEG_MINI_PROTOCOLS:= \
 	file
 
 FFMPEG_AUDIO_DECODERS:= \
-	aac \
-	aac_latm \
 	ac3 \
 	adpcm_* \
 	alac \
@@ -172,14 +169,9 @@ FFMPEG_AUDIO_DECODERS:= \
 	pcm_* \
 	vorbis \
 	wavpack \
-	wmav1 \
-	wmav2 \
-	wmalossless \
-	wmapro \
 	zlib \
 
 FFMPEG_AUDIO_DEMUXERS:= \
-	aac \
 	ac3 \
 	aiff \
 	amr \
@@ -204,13 +196,32 @@ FFMPEG_AUDIO_DEMUXERS:= \
 FFMPEG_AUDIO_PROTOCOLS:= \
 	file http icecast rtp tcp udp
 
+FFMPEG_PATENTED_DECODERS:= \
+	atrac3 \
+	h264 \
+	hevc \
+	vc1 \
+
+FFMPEG_PATENTED_ENCODERS:=$(FFMPEG_PATENDED_DECODERS)
+
+FFMPEG_PATENTED_MUXERS:= \
+	h264 \
+	hevc \
+	vc1 \
+
+FFMPEG_PATENTED_DEMUXERS:=$(FFMPEG_PATENTED_MUXERS)
+
+FFMPEG_PATENTED_PARSERS:= \
+	h264 \
+	hevc \
+	vc1 \
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
 
 PKG_CONFIG_DEPENDS:= \
 	$(patsubst %,CONFIG_FFMPEG_CUSTOM_ENCODER_%,$(FFMPEG_CUSTOM_ENCODERS)) \
 	$(patsubst %,CONFIG_FFMPEG_CUSTOM_DECODER_%,$(FFMPEG_CUSTOM_DECODERS)) \
-	$(patsubst %,CONFIG_FFMPEG_CUSTOM_MUXER_%,$(FFMPEG_CUSTOM_DEMUXERS)) \
+	$(patsubst %,CONFIG_FFMPEG_CUSTOM_MUXER_%,$(FFMPEG_CUSTOM_MUXERS)) \
 	$(patsubst %,CONFIG_FFMPEG_CUSTOM_DEMUXER_%,$(FFMPEG_CUSTOM_DEMUXERS)) \
 	$(patsubst %,CONFIG_FFMPEG_CUSTOM_PARSER_%,$(FFMPEG_CUSTOM_PARSERS)) \
 	$(patsubst %,CONFIG_FFMPEG_CUSTOM_PROTOCOL_%,$(FFMPEG_CUSTOM_PROTOCOLS))
@@ -226,6 +237,10 @@ endef
 define Package/ffmpeg/Default/description
  FFmpeg is a a software package that can record, convert and stream digital
  audio and video in numerous formats.
+
+ FFmpeg licensing / patent issues are complex. It is the reponsibility of the
+ user to understand any requirements in this regard with its usage. See:
+ https://ffmpeg.org/legal.html for further information.
 endef
 
 
@@ -286,10 +301,12 @@ $(call Package/ffmpeg/Default)
 endef
 
 
+# Package build suppressed when CONFIG_ALL=y
 define Package/libffmpeg-custom
 $(call Package/libffmpeg/Default)
  TITLE+= (custom)
- DEPENDS+= +FFMPEG_CUSTOM_SELECT_libopus:libopus \
+ DEPENDS+= @!ALL \
+           +FFMPEG_CUSTOM_SELECT_libopus:libopus \
            +PACKAGE_libx264:libx264 +PACKAGE_lame-lib:lame-lib \
            +FFMPEG_CUSTOM_SELECT_libshine:shine \
            +PACKAGE_fdk-aac:fdk-aac
@@ -311,7 +328,6 @@ endef
 define Package/libffmpeg-audio-dec
 $(call Package/libffmpeg/Default)
  TITLE+= (audio)
- DEPENDS+= @BUILD_PATENTED
  VARIANT:=audio-dec
 endef
 
@@ -325,7 +341,7 @@ endef
 define Package/libffmpeg-full
 $(call Package/libffmpeg/Default)
  TITLE+= (full)
- DEPENDS+= @BUILD_PATENTED +alsa-lib +PACKAGE_libopus:libopus
+ DEPENDS+= +alsa-lib +PACKAGE_libopus:libopus
  ifeq ($(CONFIG_SOFT_FLOAT),y)
 	DEPENDS+= +PACKAGE_shine:shine
  else
@@ -345,7 +361,6 @@ endef
 define Package/libffmpeg-mini
 $(call Package/libffmpeg/Default)
  TITLE+= (mini)
- DEPENDS+= @BUILD_PATENTED
  VARIANT:=mini
 endef
 
@@ -432,8 +447,20 @@ FFMPEG_CONFIGURE+= --disable-yasm
 endif
 
 ifeq ($(BUILD_VARIANT),full)
+
+  FFMPEG_DISABLE= \
+	$(foreach c, $(2), \
+		--disable-$(1)="$(c)" \
+	)
+
 	FFMPEG_CONFIGURE+= \
 		--enable-avresample \
+		$(if $(CONFIG_BUILD_PATENTED),, \
+			$(call FFMPEG_DISABLE,decoder,$(FFMPEG_PATENTED_DECODERS)) \
+			$(call FFMPEG_DISABLE,encoder,$(FFMPEG_PATENTED_ENCODERS)) \
+			$(call FFMPEG_DISABLE,muxer,$(FFMPEG_PATENTED_MUXERS)) \
+			$(call FFMPEG_DISABLE,demuxer,$(FFMPEG_PATENTED_DEMUXERS)) \
+			$(call FFMPEG_DISABLE,parser,$(FFMPEG_PATENTED_PARSERS))) \
 		$(if $(CONFIG_PACKAGE_libopus),--enable-libopus)
   ifeq ($(CONFIG_SOFT_FLOAT),y)
 	FFMPEG_CONFIGURE+= \
@@ -448,7 +475,6 @@ ifeq ($(BUILD_VARIANT),full)
 	endif
 	FFMPEG_CONFIGURE+= \
 		--enable-gpl \
-		\
 		$(if $(CONFIG_PACKAGE_lame-lib),--enable-libmp3lame) \
 		$(if $(CONFIG_PACKAGE_libx264),--enable-libx264)
   endif
@@ -571,7 +597,9 @@ ifeq ($(BUILD_VARIANT),mini)
 	--disable-everything \
 	$(call FFMPEG_ENABLE,decoder,$(FFMPEG_MINI_DECODERS)) \
 	$(call FFMPEG_ENABLE,demuxer,$(FFMPEG_MINI_DEMUXERS)) \
-	$(call FFMPEG_ENABLE,protocol,$(FFMPEG_MINI_PROTOCOLS))
+	$(call FFMPEG_ENABLE,protocol,$(FFMPEG_MINI_PROTOCOLS)) \
+	$(if $(CONFIG_BUILD_PATENTED), \
+		$(call FFMPEG_ENABLE,decoder,$(FFMPEG_PATENTED_MINI_DECODERS)))
 endif
 
 ifneq ($(CONFIG_TARGET_x86),)
@@ -689,6 +717,4 @@ $(eval $(call BuildPackage,ffserver))
 $(eval $(call BuildPackage,libffmpeg-audio-dec))
 $(eval $(call BuildPackage,libffmpeg-full))
 $(eval $(call BuildPackage,libffmpeg-mini))
-ifneq ($(CONFIG_ALL),y)
-   $(eval $(call BuildPackage,libffmpeg-custom))
-endif
+$(eval $(call BuildPackage,libffmpeg-custom))

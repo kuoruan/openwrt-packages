@@ -1,10 +1,10 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gnunet
-PKG_SOURCE_VERSION:=664aca2d29b15dd75967d2bb0298caf750993b6f
-PKG_MIRROR_HASH:=d3fd9f9275e3173b392ea3d151130fae9fb507986c5bd6a369303e0e1e0ab6d6
+PKG_SOURCE_VERSION:=b673e9c3ed4a211b974bc602b893a427533566d7
+PKG_MIRROR_HASH:=89bc8cb5813bd38e0006d91fcd091b0eef533d6ff8462c800bf37d2e19966beb
 
-PKG_VERSION:=0.10.2-git-20171004-$(PKG_SOURCE_VERSION)
+PKG_VERSION:=0.10.2-git-20180205-$(PKG_SOURCE_VERSION)
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
@@ -228,7 +228,7 @@ DEPENDS_gns:=+gnunet-vpn +iptables-mod-extra
 USERID_gns:=gnunet=958:gnunetdns=452
 BIN_gns:=gns gns-import.sh namecache namestore resolver
 LIB_gns:=gns gnsrecord namecache namestore
-PLUGIN_gns:=block_dns block_gns gnsrecord_dns gnsrecord_gns gnsrecord_identity
+PLUGIN_gns:=block_dns block_gns gnsrecord_conversation gnsrecord_dns gnsrecord_gns
 LIBEXEC_gns:=dns2gns helper-dns service-dns service-gns service-namecache service-namestore service-resolver service-zonemaster
 CONF_gns:=dns gns namecache namestore resolver zonemaster
 

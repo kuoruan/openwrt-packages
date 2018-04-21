@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gnurl
-PKG_VERSION:=7.55.1-4
-PKG_RELEASE:=1
+PKG_VERSION:=7.57.0
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=https://gnunet.org/sites/default/files
 
-PKG_HASH:=d4758822f84fe961d9253d3d7ff742c9cd0d39d5340d441b8014771eb95b8125
+PKG_HASH:=2ccd2a641a9815df924b6a79ee47d12a27ee43bd05a3c6ba958108564580d3b7
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=COPYING
@@ -42,7 +42,7 @@ define Package/libgnurl
   $(call Package/gnurl/Default)
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libgnutls +libidn +zlib
+  DEPENDS:=+libgnutls +libidn2 +zlib
   TITLE:=A client-side HTTP/HTTPS transfer library
 endef
 

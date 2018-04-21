@@ -11,12 +11,12 @@ PKG_LICENSE:=ASL-2.0
 PKG_MAINTAINER:=Mislav Novakovic <mislav.novakovic@sartura.hr>
 
 PKG_NAME:=sysrepo
-PKG_VERSION:=0.7.1
+PKG_VERSION:=0.7.3
 PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=0b36f308574a60d7ee36b1a3118b999618bb40d8
-PKG_MIRROR_HASH:=d28ff0356b6ac4b934bb45ff77973efe7964b86a54270d11e1fd06a2af9bdbc8
+PKG_SOURCE_VERSION:=91e65c6f7d8826197b2806ab6d5466d16882b07f
+PKG_MIRROR_HASH:=1662c158d5eac3e6c9f400517bd02b1967632f3d8b3516523da669bbd1c28c4
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.xz
 PKG_SOURCE_URL:=https://github.com/sysrepo/sysrepo.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION)
@@ -31,13 +31,23 @@ PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
+ifeq ($(CONFIG_SYSREPO_PYTHON),y)
+$(call include_mk, python-package.mk)
+endif
+
+define Package/libsysrepo/config
+	source "$(SOURCE)/Config_libsysrepo.in"
+endef
+
+PKG_BUILD_DEPENDS:=+SYSREPO_BINDINGS:swig/host
 
 define Package/libsysrepo
   SECTION:=utils
   CATEGORY:=Utilities
   URL:=$(PKG_SOURCE_URL)
   TITLE:=YANG-based data store library
-  DEPENDS:=+libyang +libprotobuf-c +libev +libredblack +librt
+  DEPENDS:=+libyang +libprotobuf-c +libev +libredblack +librt +SYSREPO_BINDINGS:libstdcpp +SYSREPO_PYTHON:python-base +SYSREPO_LUA:lua
+  MENU:=1
 endef
 
 define Package/sysrepo
@@ -75,6 +85,8 @@ CMAKE_OPTIONS += \
 	-DBUILD_EXAMPLES:BOOL=FALSE \
 	-DCMAKE_DISABLE_FIND_PACKAGE_SWIG=TRUE \
 	-DGEN_LANGUAGE_BINDINGS:BOOL=FALSE \
+	-DGEN_PYTHON_BINDINGS=0 \
+	-DGEN_LUA_BINDINGS=0 \
 	-DREPOSITORY_LOC:PATH=/etc/sysrepo \
 	-DCMAKE_INSTALL_PREFIX:PATH=/usr \
 	-DENABLE_NACM:BOOL=FALSE \
@@ -86,6 +98,25 @@ CMAKE_OPTIONS += \
 	-DNOTIF_TIME_WINDOW=20 \
 	-DUSE_SR_MEM_MGMT=0
 
+ifeq ($(CONFIG_SYSREPO_LUA),y)
+CMAKE_OPTIONS += \
+	-DGEN_LUA_BINDINGS:BOOL=TRUE \
+	-DGEN_LUA_VERSION=5.1
+endif
+
+ifeq ($(CONFIG_SYSREPO_PYTHON),y)
+CMAKE_OPTIONS += \
+	-DGEN_PYTHON_BINDINGS:BOOL=TRUE \
+	-DGEN_PYTHON_VERSION=2
+endif
+
+ifeq ($(CONFIG_SYSREPO_BINDINGS),y)
+CMAKE_OPTIONS += \
+	-DCMAKE_DISABLE_FIND_PACKAGE_SWIG=FALSE \
+	-DGEN_LANGUAGE_BINDINGS:BOOL=TRUE \
+	-DSWIG_DIR=$(STAGING_DIR)/host/share/swig
+endif
+
 define Package/libsysrepo/install
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(PKG_BUILD_DIR)/src/libsysrepo.so* $(1)/usr/lib/
@@ -96,17 +127,31 @@ define Package/libsysrepo/install
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/yang/sysrepo-persistent-data.yang $(1)/etc/sysrepo/yang/internal
 
 	$(INSTALL_DIR) $(1)/etc/sysrepo/yang
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf-acm@2012-02-22.yang $(1)/etc/sysrepo/yang/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf-notifications.yang $(1)/etc/sysrepo/yang/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/nc-notifications.yang $(1)/etc/sysrepo/yang/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/notifications.yang $(1)/etc/sysrepo/yang/
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf@2011-06-01.yang $(1)/etc/sysrepo/yang/
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf-acm@2012-02-22.yang $(1)/etc/sysrepo/yang/ietf-netconf-acm@2012-02-22.yang
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf-notifications.yang $(1)/etc/sysrepo/yang/ietf-netconf-notifications@2012-02-06..yang
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/nc-notifications.yang $(1)/etc/sysrepo/yang/nc-notifications@2008-07-14.yang
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/notifications.yang $(1)/etc/sysrepo/yang/notifications@2008-07-14.yang
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/yang/ietf-netconf@2011-06-01.yang $(1)/etc/sysrepo/yang/ietf-netconf@2011-06-01.yang
 
 	$(INSTALL_DIR) $(1)/etc/sysrepo/data/internal
 	$(INSTALL_DIR) $(1)/etc/sysrepo/data/notifications
 
 	$(INSTALL_DIR) $(1)/etc/uci-defaults
 	$(INSTALL_BIN) ./files/libsysrepo.default $(1)/etc/uci-defaults/95_libsysrepo
+
+ifeq ($(CONFIG_SYSREPO_PYTHON),y)
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_BUILD_DIR)/swig/libSysrepo-cpp.so* $(1)/usr/lib
+	$(INSTALL_DIR) $(1)$(PYTHON_PKG_DIR)
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/swig/python2/libsysrepoPython2.py $(1)$(PYTHON_PKG_DIR)
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/swig/python2/_libsysrepoPython2.so $(1)$(PYTHON_PKG_DIR)
+endif
+
+ifeq ($(CONFIG_SYSREPO_LUA),y)
+	$(INSTALL_DIR) $(1)/usr/lib/lua/
+	$(CP) $(PKG_BUILD_DIR)/swig/lua/libSysrepo_Lua.so* $(1)/usr/lib
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/swig/lua/libsysrepoLua.so $(1)/usr/lib/lua/libsysrepoLua.so
+endif
 endef
 
 define Package/sysrepo/install
