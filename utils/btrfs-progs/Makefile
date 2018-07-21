@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=btrfs-progs
-PKG_VERSION:=4.15.1
+PKG_VERSION:=4.17
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.xz
 PKG_SOURCE_URL:=@KERNEL/linux/kernel/people/kdave/btrfs-progs/
-PKG_HASH:=67102ac0d6795f368acc94efaca29b6626d972638790a4a0c9f89a27cd543f96
+PKG_HASH:=82ca0ecf76350a1e3c6543fe220c0910e240511e663d51fc79c32bd0052c117c
 PKG_MAINTAINER:=Rosen Penev <rosenp@gmail.com>
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-v$(PKG_VERSION)
 
@@ -44,14 +44,18 @@ define Package/btrfs-progs/description
  GPL and open for contribution from anyone.
 endef
 
-progs = btrfs btrfs-debug-tree btrfs-find-root btrfs-image btrfs-map-logical \
-	btrfs-select-super btrfstune btrfs-zero-log fsck.btrfs mkfs.btrfs
+progs = btrfs btrfs-find-root btrfs-image btrfs-map-logical \
+	btrfs-select-super btrfstune fsck.btrfs mkfs.btrfs
 
 CONFIGURE_ARGS += \
 	--disable-backtrace \
 	--disable-convert \
 	--disable-documentation \
+	--disable-python \
 	--disable-zstd
+
+TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto
+TARGET_LDFLAGS += -Wl,--gc-sections -flto
 
 EXTRA_CFLAGS=$(TARGET_CPPFLAGS)
 

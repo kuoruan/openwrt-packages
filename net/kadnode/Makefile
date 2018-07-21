@@ -1,22 +1,17 @@
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 include $(TOPDIR)/rules.mk
 
 
 PKG_NAME:=kadnode
-PKG_VERSION:=2.2.0
+PKG_VERSION:=2.2.3
 PKG_RELEASE:=1
 
-
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.xz
-PKG_SOURCE_URL:=https://github.com/mwarning/KadNode
-PKG_SOURCE_VERSION:=c63e734950787d35c8bf1363448430942d1bb39d
-PKG_MIRROR_HASH:=dcecfb14169ac5c4c28bcf147681f6823aa2d8a37d29d35ab3e76b613cce085c
 PKG_LICENSE:=MIT
+
+PKG_SOURCE_URL:=https://codeload.github.com/mwarning/KadNode/tar.gz/v$(PKG_VERSION)?
+PKG_SOURCE:=kadnode-$(PKG_VERSION).tar.gz
+PKG_HASH:=1f5538a4b904fd2a624a2046f9320f72357af619190188f14bfdb15b5e5f8488
+PKG_BUILD_DIR:=$(BUILD_DIR)/KadNode-$(PKG_VERSION)
+
 
 PKG_BUILD_PARALLEL:=1
 
@@ -76,6 +71,10 @@ FEATURES += debug
 endif
 
 MAKE_FLAGS += FEATURES="$(FEATURES)"
+
+# Make binary smaller
+TARGET_CFLAGS += -ffunction-sections -fdata-sections
+TARGET_LDFLAGS += -Wl,--gc-sections
 
 define Package/kadnode/install
 	$(INSTALL_DIR) $(1)/usr/bin
